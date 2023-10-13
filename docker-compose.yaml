@@ -1,15 +1,11 @@
 version: '3.3'
 
-name: chat
-
 services:
   pg:
     image: ankane/pgvector:v0.4.2 # git
     # image: registry.cn-hangzhou.aliyuncs.com/fastgpt/pgvector:v0.4.2 # 阿里云
     container_name: pg
     restart: always
-    ports: # 生产环境建议不要暴露
-      - 5432:5432
     networks:
       - fastgpt
     environment:
@@ -25,8 +21,6 @@ services:
     # image: registry.cn-hangzhou.aliyuncs.com/fastgpt/mongo:5.0.18 # 阿里云
     container_name: mongo
     restart: always
-    ports: # 生产环境建议不要暴露
-      - 27017:27017
     networks:
       - fastgpt
     environment:
@@ -44,8 +38,6 @@ services:
     volumes:
       - ./config/redis/data:/data
       - ./config/redis/redis.conf:/etc/redis/redis.conf
-    ports:
-      - 6379:6379
     command: redis-server /etc/redis/redis.conf # 指定配置文件并开启持久化
     networks:
       - fastgpt
@@ -56,18 +48,18 @@ services:
     restart: always
     networks:
       - fastgpt
-    deploy:
-      resources:
-        reservations:
-          devices:
-              - driver: nvidia
-                device_ids: ['0']
-                capabilities: [compute, utility]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #           - driver: nvidia
+    #             device_ids: ['0']
+    #             capabilities: [compute, utility]
   chatglm2-api-int4:
     image: chatglm2-api-int4
     build: 
       context: ./services/ChatGLM2-6B/
-      dockerfile: ./services/ChatGLM2-6B/Dockerfile.openapi
+      dockerfile: ./services/ChatGLM2-6B/Dockerfile.openapi.int4.cpu
       # todo 改为实际代理端口
       args:
         port: 1080
@@ -75,13 +67,13 @@ services:
     restart: always
     networks:
       - fastgpt
-    deploy:
-      resources:
-        reservations:
-          devices:
-              - driver: nvidia
-                device_ids: ['0']
-                capabilities: [compute, utility]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #           - driver: nvidia
+    #             device_ids: ['0']
+    #             capabilities: [compute, utility]
   one-api:
     # image: justsong/one-api:latest
     image: one-api
@@ -105,7 +97,7 @@ services:
 #      - FRONTEND_BASE_URL=https://openai.justsong.cn  # 多机部署时从节点取消注释该行
     depends_on:
       - redis
-      - mysql
+      - pg
     healthcheck:
       test: [ "CMD-SHELL", "curl -s http://one-api:3001/api/status | grep -o '\"success\":\\s*true' | awk '{print $2}' | grep 'true'" ]
       interval: 30s
