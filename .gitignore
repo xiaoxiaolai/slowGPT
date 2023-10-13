@@ -1,10 +1,16 @@
 # config
 config/mongo/data/*
+!config/mongo/data/.gitkeep
 config/mongo/log/*
+!config/mongo/log/.gitkeep
 
 config/one-api/data/*
+!config/one-api/data/.gitkeep
 config/one-api/logs/*
+!config/one-api/logs/.gitkeep
 
 config/pg/data/*
+!config/pg/data/.gitkeep
 
 config/redis/data/*
+!config/redis/data/.gitkeep
