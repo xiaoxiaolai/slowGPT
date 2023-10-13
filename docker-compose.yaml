@@ -60,9 +60,9 @@ services:
     build: 
       context: ./services/ChatGLM2-6B/
       dockerfile: ./Dockerfile.openapi.int4.cpu
-      # todo 改为实际代理端口
+      # todo 改为实际代理地址端口
       args:
-        port: 1080
+        proxy: http://192.168.31.81:1080
     container_name: chatglm2-api-int4
     restart: always
     networks:
@@ -75,9 +75,9 @@ services:
     #             device_ids: ['0']
     #             capabilities: [compute, utility]
   one-api:
-    image: justsong/one-api:latest
-    # image: one-api
-    # build: ./services/one-api/
+    # image: justsong/one-api:latest
+    image: one-api
+    build: ./services/one-api/
     container_name: one-api
     restart: always
     command: --log-dir /app/logs
@@ -109,13 +109,13 @@ services:
       - host.docker.internal:host-gateway
   fastgpt:
     # container_name: fastgpt
-    image: ghcr.io/labring/fastgpt:latest # git
+    # image: ghcr.io/labring/fastgpt:latest # git
     # image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt:latest # 阿里云
-    # image: fastgpt
-    # build: 
-    #   context: ./services/FastGPT/
-    #   args:
-    #     name: app
+    image: fastgpt
+    build: 
+      context: ./services/FastGPT/
+      args:
+        name: app
     ports:
       - 30001:3000
     networks:
