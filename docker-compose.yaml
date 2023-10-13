@@ -68,6 +68,9 @@ services:
     build: 
       context: ./services/ChatGLM2-6B/
       dockerfile: ./services/ChatGLM2-6B/Dockerfile.openapi
+      # todo 改为实际代理端口
+      args:
+        port: 1080
     container_name: chatglm2-api-int4
     restart: always
     networks:
