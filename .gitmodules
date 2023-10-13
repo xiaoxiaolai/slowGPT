@@ -1,0 +1,9 @@
+[submodule "services/ChatGLM2-6B"]
+	path = services/ChatGLM2-6B
+	url = https://github.com/xiaoxiaolai/ChatGLM2-6B.git
+[submodule "services/one-api"]
+	path = services/one-api
+	url = https://github.com/xiaoxiaolai/one-api.git
+[submodule "services/FastGPT"]
+	path = services/FastGPT
+	url = https://github.com/xiaoxiaolai/FastGPT.git

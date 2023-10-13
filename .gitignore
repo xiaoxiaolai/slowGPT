@@ -1,0 +1,10 @@
+# config
+config/mongo/data/
+config/mongo/log/
+
+config/one-api/data/
+config/one-api/logs/
+
+config/pg/data/
+
+config/redis/data/

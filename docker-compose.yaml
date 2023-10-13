@@ -1,0 +1,151 @@
+version: '3.3'
+
+name: chat
+
+services:
+  pg:
+    image: ankane/pgvector:v0.4.2 # git
+    # image: registry.cn-hangzhou.aliyuncs.com/fastgpt/pgvector:v0.4.2 # 阿里云
+    container_name: pg
+    restart: always
+    ports: # 生产环境建议不要暴露
+      - 5432:5432
+    networks:
+      - fastgpt
+    environment:
+      # 这里的配置只有首次运行生效。修改后，重启镜像是不会生效的。需要把持久化数据删除再重启，才有效果
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./config/pg/data:/var/lib/postgresql/data
+      - ./config/pg/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+  mongo:
+    image: mongo:5.0.18
+    # image: registry.cn-hangzhou.aliyuncs.com/fastgpt/mongo:5.0.18 # 阿里云
+    container_name: mongo
+    restart: always
+    ports: # 生产环境建议不要暴露
+      - 27017:27017
+    networks:
+      - fastgpt
+    environment:
+      # 这里的配置只有首次运行生效。修改后，重启镜像是不会生效的。需要把持久化数据删除再重启，才有效果
+      - MONGO_INITDB_ROOT_USERNAME=username
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+     - ./config/mongo/data:/data/db    # 挂载数据文件，根据实际路径修改 ：前的路径
+     - ./config/mongo/log:/var/log/mongodb  # 挂载日志文件，根据实际路径修改 ：前的路径
+     - ./config/mongo/config:/etc/mongo  # 挂载配置文件，根据实际路径修改 ：前的路径
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    volumes:
+      - ./config/redis/data:/data
+      - ./config/redis/redis.conf:/etc/redis/redis.conf
+    ports:
+      - 6379:6379
+    command: redis-server /etc/redis/redis.conf # 指定配置文件并开启持久化
+    networks:
+      - fastgpt
+  m3e-large-api:
+    image: stawky/m3e-large-api:latest
+    environment:
+      - sk-key=m3e-xxx
+    restart: always
+    networks:
+      - fastgpt
+    deploy:
+      resources:
+        reservations:
+          devices:
+              - driver: nvidia
+                device_ids: ['0']
+                capabilities: [compute, utility]
+  chatglm2-api-int4:
+    image: chatglm2-api-int4
+    build: 
+      context: ./services/ChatGLM2-6B/
+      dockerfile: ./services/ChatGLM2-6B/Dockerfile.openapi
+    container_name: chatglm2-api-int4
+    restart: always
+    networks:
+      - fastgpt
+    deploy:
+      resources:
+        reservations:
+          devices:
+              - driver: nvidia
+                device_ids: ['0']
+                capabilities: [compute, utility]
+  one-api:
+    # image: justsong/one-api:latest
+    image: one-api
+    build: ./services/one-api/
+    container_name: one-api
+    restart: always
+    command: --log-dir /app/logs
+    ports:
+      - 3001:3001
+    volumes:
+      - ./config/one-api/data:/data
+      - ./config/one-api/logs:/app/logs
+    environment:
+      - SQL_DSN=username:password@tcp(pg:5432)/oneapi  # 修改此行，或注释掉以使用 SQLite 作为数据库
+      - REDIS_CONN_STRING=redis://redis
+      - SESSION_SECRET=random_string  # 修改为随机字符串
+      - TZ=Asia/Shanghai
+      - PORT=3001
+#      - NODE_TYPE=slave  # 多机部署时从节点取消注释该行
+#      - SYNC_FREQUENCY=60  # 需要定期从数据库加载数据时取消注释该行
+#      - FRONTEND_BASE_URL=https://openai.justsong.cn  # 多机部署时从节点取消注释该行
+    depends_on:
+      - redis
+      - mysql
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://one-api:3001/api/status | grep -o '\"success\":\\s*true' | awk '{print $2}' | grep 'true'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - fastgpt
+    extra_hosts:
+      - host.docker.internal:host-gateway
+  fastgpt:
+    container_name: fastgpt
+    # image: ghcr.io/labring/fastgpt:latest # git
+    # image: registry.cn-hangzhou.aliyuncs.com/fastgpt/fastgpt:latest # 阿里云
+    image: fastgpt
+    build: 
+      context: ./services/FastGPT/
+      args:
+        name: app
+    ports:
+      - 3000:3000
+    networks:
+      - fastgpt
+    depends_on:
+      - mongo
+      - pg
+      - one-api
+    restart: always
+    environment:
+      # root 密码，用户名为: root
+      - DEFAULT_ROOT_PSW=fastgpt
+      # 中转地址，如果是用官方号，不需要管
+      - OPENAI_BASE_URL=http://one-api:3001/v1
+      - CHAT_API_KEY=sk-v27ZVEfhJ59KMlAYD713C103CbAe442fA00cE24bBa43F63a
+      - DB_MAX_LINK=5 # database max link
+      - TOKEN_KEY=any
+      - ROOT_KEY=root_key
+      - FILE_TOKEN_KEY=filetoken
+      # mongo 配置，不需要改. 如果连不上，可能需要去掉 ?authSource=admin
+      - MONGODB_URI=mongodb://username:password@mongo:27017/fastgpt?authSource=admin
+      # pg配置. 不需要改
+      - PG_URL=postgresql://username:password@pg:5432/postgres
+      - HOME_URL=/login
+    volumes:
+      - ./config/fastgpt/data/config.json:/app/data/config.json
+networks:
+  fastgpt:

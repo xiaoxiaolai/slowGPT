@@ -1,0 +1,27 @@
+{
+  "SystemParams": {
+    "vectorMaxProcess": 15,
+    "qaMaxProcess": 15,
+    "pgIvfflatProbe": 20
+  },
+  "ChatModels": [
+    {
+      "model": "chatglm2-6b", 
+      "name": "chatglm2-6b", 
+      "contextMaxToken": 4000, 
+      "quoteMaxToken": 2000,
+      "maxTemperature": 1, 
+      "price": 0, 
+      "defaultSystem": "" 
+    }
+  ],
+  "VectorModels": [
+    {
+      "model": "m3e",
+      "name": "m3e",
+      "price": 0,
+      "defaultToken": 500,
+      "maxToken": 1800
+    }
+  ]
+}
